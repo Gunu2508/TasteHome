@@ -1,136 +1,127 @@
-# TasteHome 🍽️
+# TasteHome API
 
-TasteHome is a full-stack web application developed as part of a sprint-based course project.  
-This repository currently contains the **backend** of the application, built using **Node.js**, **Express**, and a **relational database**.
+A RESTful backend API for TasteHome — a recipe sharing platform. Built with **Node.js**, **Express**, and **MySQL** (hosted on Aiven).
 
----
+## Technologies
 
-## 🚀 Project Overview
-
-The TasteHome backend provides a RESTful API that supports core application features such as:
-
-- User management
-- Data retrieval and storage
-- API endpoints for frontend integration
-- Secure and scalable server-side architecture
-
-This project follows an **Agile Sprint workflow** and is demonstrated through live code reviews on designated Dev Days.
+- Node.js + Express 4
+- MySQL 8 via `mysql2` (cloud-hosted on Aiven)
+- JWT authentication (`jsonwebtoken`)
+- Password hashing (`bcrypt`)
+- Environment configuration (`dotenv`)
 
 ---
 
-## 🛠️ Technologies Used
+## Project Structure
 
-- **Node.js**
-- **Express.js**
-- **MySQL / MariaDB**
-- **JavaScript**
-- **Git & GitHub**
-
----
-
-## 📁 Project Structure
-
-
-
-TasteHome/
-│
-├── backend/
-│ ├── controllers/ # Business logic
-│ ├── routes/ # API routes
-│ ├── models/ # Database models
-│ ├── config/ # Database & environment configuration
-│ ├── server.js # Application entry point
-│ └── package.json # Project dependencies
-│
+```
+backend/
+├── config/
+│   ├── db.js              # MySQL connection pool
+│   └── initDB.js          # Auto-creates tables on startup
+├── controllers/
+│   ├── authController.js  # register & login logic
+│   ├── userController.js  # User CRUD
+│   ├── recipeController.js # Recipe CRUD
+│   └── reviewController.js # Review CRUD
+├── middleware/
+│   └── authMiddleware.js  # JWT verification (protects private routes)
+├── routes/
+│   ├── authRoutes.js      # POST /register, POST /login
+│   ├── userRoutes.js      # /api/users CRUD
+│   ├── recipeRoutes.js    # /api/recipes CRUD
+│   └── reviewRoutes.js    # /api/reviews CRUD
+├── .env.example           # Environment variable template
+├── .gitignore
+├── database.sql           # SQL schema
+├── package.json
+├── server.js              # Application entry point
+├── TasteHome.postman_collection.json
 └── README.md
-
+```
 
 ---
 
-## ⚙️ Installation & Setup
+## Database Schema (3 Entities + Relationships)
 
-1. Clone the repository:
+| Entity | Table | Relationship |
+|--------|-------|-------------|
+| Users | `users` | Base entity |
+| Recipes (Resource A) | `recipes` | `user_id` FK to `users.id` (One-to-Many) |
+| Reviews (Resource B) | `reviews` | `recipe_id` FK to `recipes.id`, `user_id` FK to `users.id` |
+
+---
+
+## API Endpoints
+
+### Auth (Public)
+| Method | Route | Status |
+|--------|-------|--------|
+| POST | `/api/auth/register` | 201 |
+| POST | `/api/auth/login` | 200 |
+
+### Users (Private - Bearer token required)
+| Method | Route | Status |
+|--------|-------|--------|
+| GET | `/api/users` | 200 |
+| GET | `/api/users/:id` | 200 / 404 |
+| PUT | `/api/users/:id` | 200 / 404 |
+| DELETE | `/api/users/:id` | 200 / 404 |
+
+### Recipes (GET public, writes private)
+| Method | Route | Status |
+|--------|-------|--------|
+| GET | `/api/recipes` | 200 |
+| GET | `/api/recipes/:id` | 200 / 404 |
+| POST | `/api/recipes` | 201 |
+| PUT | `/api/recipes/:id` | 200 / 403 / 404 |
+| DELETE | `/api/recipes/:id` | 200 / 403 / 404 |
+| GET | `/api/recipes/:recipeId/reviews` | 200 |
+| POST | `/api/recipes/:recipeId/reviews` | 201 |
+
+### Reviews (GET public, writes private)
+| Method | Route | Status |
+|--------|-------|--------|
+| GET | `/api/reviews` | 200 |
+| GET | `/api/reviews/:id` | 200 / 404 |
+| PUT | `/api/reviews/:id` | 200 / 403 / 404 |
+| DELETE | `/api/reviews/:id` | 200 / 403 / 404 |
+
+---
+
+## Local Setup
+
+1. Clone and navigate to backend:
    ```bash
    git clone https://github.com/Gunu2508/TasteHome.git
+   cd TasteHome
+   ```
 
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-Navigate to the backend folder:
+3. Create `.env` from template:
+   ```bash
+   cp .env.example .env
+   # Fill in your Aiven DB credentials and JWT secret
+   ```
 
-cd TasteHome/backend
-
-
-Install dependencies:
-
-npm install
-
-
-Configure environment variables (if applicable):
-
-Database credentials
-
-Port number
-
-Start the server:
-
-npm start
-
-
-or
-
-node server.js
-
-🔗 API Functionality
-
-RESTful endpoints built with Express
-
-Database integration using SQL
-
-Structured routing and controllers
-
-Ready for frontend (React) integration
-
-🧪 Testing & Demo
-
-Application is demonstrated during Dev Day live code reviews
-
-Instructor may ask to:
-
-Show API routes
-
-Explain database connections
-
-Run the server locally
-
-📦 Future Work
-
-Frontend integration using React
-
-Authentication & authorization
-
-Deployment using CI/CD pipelines
-
-Cloud hosting
-
-👤 Author
-
-Name: Gunu
-GitHub: https://github.com/Gunu2508
-
-📜 License
-
-This project is for educational purposes only.
-
+4. Start the server:
+   ```bash
+   npm start
+   ```
 
 ---
 
-## ✅ What to do next
+## Deployment
 
-1. Create a file named **`README.md`**
-2. Paste the content above
-3. Save it
-4. Push it to GitHub:
+- **API:** Hosted on [Render](https://render.com)
+- **Database:** MySQL hosted on [Aiven](https://aiven.io)
 
-```bash
-git add README.md
-git commit -m "Add README file"
-git push origin main
+---
+
+## Author
+
+**Gunveer** - GitHub: [Gunu2508](https://github.com/Gunu2508)

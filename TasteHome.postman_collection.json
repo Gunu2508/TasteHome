@@ -1,0 +1,257 @@
+{
+  "info": {
+    "name": "TasteHome API",
+    "_postman_id": "tastehome-api-collection-v1",
+    "description": "Complete API documentation for the TasteHome backend. Covers all CRUD endpoints for Users, Recipes, and Reviews, plus JWT authentication.\n\n**How to use:**\n1. Run POST /api/auth/register to create an account\n2. Run POST /api/auth/login to get your Bearer token\n3. In protected requests, set the Authorization header to: Bearer <your_token>",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "description": "Change this to your deployed Render URL when testing live"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "description": "Paste your JWT token here after logging in"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Public routes - no token required",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/auth/register", "host": ["{{base_url}}"], "path": ["api", "auth", "register"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Gunveer Singh\",\n  \"email\": \"gunveer@example.com\",\n  \"password\": \"password123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Creates a new user account. Password is hashed with bcrypt before storage. Returns a JWT token on success.\n\nExpected status: 201 Created"
+          }
+        },
+        {
+          "name": "Login User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api", "auth", "login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"gunveer@example.com\",\n  \"password\": \"password123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Authenticates an existing user. Returns a JWT token. Copy this token and set it as Authorization: Bearer <token> on protected requests.\n\nExpected status: 200 OK"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "description": "Private routes - require Authorization: Bearer <token>",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/users", "host": ["{{base_url}}"], "path": ["api", "users"] },
+            "description": "Returns a list of all registered users (passwords excluded).\n\nExpected status: 200 OK"
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/users/1", "host": ["{{base_url}}"], "path": ["api", "users", "1"] },
+            "description": "Returns a single user by their ID. Returns 404 if not found.\n\nExpected status: 200 OK"
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/api/users/1", "host": ["{{base_url}}"], "path": ["api", "users", "1"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Gunveer Updated\",\n  \"email\": \"gunveer.updated@example.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Updates name and/or email for the user with the specified ID.\n\nExpected status: 200 OK"
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/users/1", "host": ["{{base_url}}"], "path": ["api", "users", "1"] },
+            "description": "Permanently deletes the user with the specified ID. Returns 404 if not found.\n\nExpected status: 200 OK"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Recipes",
+      "description": "GET routes are public. POST, PUT, DELETE require Authorization: Bearer <token>",
+      "item": [
+        {
+          "name": "Get All Recipes",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/recipes", "host": ["{{base_url}}"], "path": ["api", "recipes"] },
+            "description": "Returns all recipes with the author's name (via JOIN with users table). No auth required.\n\nExpected status: 200 OK"
+          }
+        },
+        {
+          "name": "Get Recipe by ID",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/recipes/1", "host": ["{{base_url}}"], "path": ["api", "recipes", "1"] },
+            "description": "Returns a single recipe by ID. Returns 404 if not found.\n\nExpected status: 200 OK"
+          }
+        },
+        {
+          "name": "Create Recipe",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/api/recipes", "host": ["{{base_url}}"], "path": ["api", "recipes"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Butter Chicken\",\n  \"description\": \"A classic creamy Indian curry\",\n  \"ingredients\": \"500g chicken, 2 tbsp butter, 1 cup tomato puree, 1 cup cream, spices\",\n  \"instructions\": \"1. Marinate chicken. 2. Cook in butter. 3. Add tomato puree. 4. Simmer with cream.\",\n  \"category\": \"Dinner\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Creates a new recipe linked to the authenticated user (via JWT).\n\nExpected status: 201 Created"
+          }
+        },
+        {
+          "name": "Update Recipe",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/api/recipes/1", "host": ["{{base_url}}"], "path": ["api", "recipes", "1"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Butter Chicken (Updated)\",\n  \"category\": \"Main Course\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Updates the recipe with the specified ID. Only the recipe owner can update. Returns 403 if attempting to edit another user's recipe.\n\nExpected status: 200 OK"
+          }
+        },
+        {
+          "name": "Delete Recipe",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/recipes/1", "host": ["{{base_url}}"], "path": ["api", "recipes", "1"] },
+            "description": "Deletes the recipe with the specified ID. Only the recipe owner can delete. Cascades to delete all associated reviews.\n\nExpected status: 200 OK"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reviews",
+      "description": "GET routes are public. POST (via recipe route), PUT, DELETE require Authorization: Bearer <token>",
+      "item": [
+        {
+          "name": "Get All Reviews",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/reviews", "host": ["{{base_url}}"], "path": ["api", "reviews"] },
+            "description": "Returns all reviews across all recipes, joined with reviewer name and recipe title.\n\nExpected status: 200 OK"
+          }
+        },
+        {
+          "name": "Get Review by ID",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/reviews/1", "host": ["{{base_url}}"], "path": ["api", "reviews", "1"] },
+            "description": "Returns a single review by ID. Returns 404 if not found.\n\nExpected status: 200 OK"
+          }
+        },
+        {
+          "name": "Get Reviews for a Recipe",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/recipes/1/reviews", "host": ["{{base_url}}"], "path": ["api", "recipes", "1", "reviews"] },
+            "description": "Returns all reviews for the recipe with the specified ID. This demonstrates the One-to-Many FK relationship between recipes and reviews.\n\nExpected status: 200 OK"
+          }
+        },
+        {
+          "name": "Create Review for a Recipe",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/api/recipes/1/reviews", "host": ["{{base_url}}"], "path": ["api", "recipes", "1", "reviews"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"comment\": \"Absolutely delicious! Made this for family dinner and everyone loved it.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Creates a new review for the recipe with the specified ID. Rating must be 1-5. Linked to the authenticated user.\n\nExpected status: 201 Created"
+          }
+        },
+        {
+          "name": "Update Review",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/api/reviews/1", "host": ["{{base_url}}"], "path": ["api", "reviews", "1"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 4,\n  \"comment\": \"Great recipe, slightly adjusted the spices.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Updates a review. Only the review author can update. Returns 403 if unauthorized.\n\nExpected status: 200 OK"
+          }
+        },
+        {
+          "name": "Delete Review",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/reviews/1", "host": ["{{base_url}}"], "path": ["api", "reviews", "1"] },
+            "description": "Deletes a review by ID. Only the review author can delete. Returns 403 if unauthorized.\n\nExpected status: 200 OK"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "API Root",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/", "host": ["{{base_url}}"], "path": [""] },
+            "description": "Root endpoint to verify the API is running.\n\nExpected status: 200 OK\nExpected response: { \"message\": \"TasteHome API is running\" }"
+          }
+        }
+      ]
+    }
+  ]
+}
