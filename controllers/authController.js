@@ -11,31 +11,26 @@ const generateToken = (id, email) => {
   return jwt.sign({ id, email }, process.env.JWT_SECRET, { expiresIn: '7d' });
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
 // @desc    Register a new user
 // @route   POST /api/auth/register
 // @access  Public
-// ─────────────────────────────────────────────────────────────────────────────
 const register = async (req, res) => {
   const { name, email, password } = req.body;
 
-  // Validate required fields
   if (!name || !email || !password) {
     return res.status(400).json({ message: 'Please provide name, email, and password' });
   }
-
   if (password.length < 6) {
     return res.status(400).json({ message: 'Password must be at least 6 characters' });
   }
 
   try {
     // Check if email is already registered
-    const [existing] = await pool.execute(
-      'SELECT id FROM users WHERE email = ?',
+    const existing = await pool.query(
+      'SELECT id FROM users WHERE email = $1',
       [email]
     );
-
-    if (existing.length > 0) {
+    if (existing.rows.length > 0) {
       return res.status(400).json({ message: 'A user with that email already exists' });
     }
 
@@ -43,32 +38,25 @@ const register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Insert the new user into the database
-    const [result] = await pool.execute(
-      'INSERT INTO users (name, email, password) VALUES (?, ?, ?)',
+    // Insert and return the new row immediately with RETURNING
+    const result = await pool.query(
+      'INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id',
       [name, email, hashedPassword]
     );
 
-    const newUserId = result.insertId;
+    const newUserId = result.rows[0].id;
     const token = generateToken(newUserId, email);
 
-    res.status(201).json({
-      id: newUserId,
-      name,
-      email,
-      token,
-    });
+    res.status(201).json({ id: newUserId, name, email, token });
   } catch (error) {
     console.error('Register error:', error.message);
     res.status(500).json({ message: 'Server error during registration' });
   }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
 // @desc    Login an existing user
 // @route   POST /api/auth/login
 // @access  Public
-// ─────────────────────────────────────────────────────────────────────────────
 const login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -78,33 +66,26 @@ const login = async (req, res) => {
 
   try {
     // Find user by email
-    const [users] = await pool.execute(
-      'SELECT * FROM users WHERE email = ?',
+    const result = await pool.query(
+      'SELECT * FROM users WHERE email = $1',
       [email]
     );
-
-    if (users.length === 0) {
+    if (result.rows.length === 0) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    const user = users[0];
+    const user = result.rows[0];
 
-    // Compare the provided password against the stored bcrypt hash
+    // Compare against the stored bcrypt hash
     const isMatch = await bcrypt.compare(password, user.password);
-
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
     const token = generateToken(user.id, user.email);
 
-    // Return user data WITHOUT the password field
-    res.status(200).json({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      token,
-    });
+    // Return WITHOUT the password field
+    res.status(200).json({ id: user.id, name: user.name, email: user.email, token });
   } catch (error) {
     console.error('Login error:', error.message);
     res.status(500).json({ message: 'Server error during login' });

@@ -8,7 +8,7 @@ const { pool } = require('../config/db');
 // ─────────────────────────────────────────────────────────────────────────────
 const getReviews = async (req, res) => {
   try {
-    const [reviews] = await pool.execute(`
+    const result = await pool.query(`
       SELECT rv.id, rv.rating, rv.comment, rv.recipe_id, rv.user_id,
              u.name  AS reviewer_name,
              r.title AS recipe_title,
@@ -19,7 +19,7 @@ const getReviews = async (req, res) => {
       ORDER  BY rv.created_at DESC
     `);
 
-    res.status(200).json(reviews);
+    res.status(200).json(result.rows);
   } catch (error) {
     console.error('getReviews error:', error.message);
     res.status(500).json({ message: 'Server error fetching reviews' });
@@ -33,7 +33,7 @@ const getReviews = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 const getReviewById = async (req, res) => {
   try {
-    const [reviews] = await pool.execute(`
+    const result = await pool.query(`
       SELECT rv.id, rv.rating, rv.comment, rv.recipe_id, rv.user_id,
              u.name  AS reviewer_name,
              r.title AS recipe_title,
@@ -41,14 +41,14 @@ const getReviewById = async (req, res) => {
       FROM   reviews rv
       JOIN   users   u ON rv.user_id   = u.id
       JOIN   recipes r ON rv.recipe_id = r.id
-      WHERE  rv.id = ?
+      WHERE  rv.id = $1
     `, [req.params.id]);
 
-    if (reviews.length === 0) {
+    if (result.rows.length === 0) {
       return res.status(404).json({ message: 'Review not found' });
     }
 
-    res.status(200).json(reviews[0]);
+    res.status(200).json(result.rows[0]);
   } catch (error) {
     console.error('getReviewById error:', error.message);
     res.status(500).json({ message: 'Server error fetching review' });
@@ -62,17 +62,17 @@ const getReviewById = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 const getReviewsByRecipe = async (req, res) => {
   try {
-    const [reviews] = await pool.execute(`
+    const result = await pool.query(`
       SELECT rv.id, rv.rating, rv.comment, rv.recipe_id, rv.user_id,
              u.name AS reviewer_name,
              rv.created_at
       FROM   reviews rv
       JOIN   users   u ON rv.user_id = u.id
-      WHERE  rv.recipe_id = ?
+      WHERE  rv.recipe_id = $1
       ORDER  BY rv.created_at DESC
     `, [req.params.recipeId]);
 
-    res.status(200).json(reviews);
+    res.status(200).json(result.rows);
   } catch (error) {
     console.error('getReviewsByRecipe error:', error.message);
     res.status(500).json({ message: 'Server error fetching reviews for recipe' });
@@ -99,26 +99,21 @@ const createReview = async (req, res) => {
 
   try {
     // Verify the recipe exists before attaching a review
-    const [recipes] = await pool.execute(
-      'SELECT id FROM recipes WHERE id = ?',
+    const recipeCheck = await pool.query(
+      'SELECT id FROM recipes WHERE id = $1',
       [recipeId]
     );
 
-    if (recipes.length === 0) {
+    if (recipeCheck.rows.length === 0) {
       return res.status(404).json({ message: 'Recipe not found' });
     }
 
-    const [result] = await pool.execute(
-      'INSERT INTO reviews (rating, comment, recipe_id, user_id) VALUES (?, ?, ?, ?)',
+    const result = await pool.query(
+      'INSERT INTO reviews (rating, comment, recipe_id, user_id) VALUES ($1, $2, $3, $4) RETURNING *',
       [parsedRating, comment || null, recipeId, req.user.id]
     );
 
-    const [newReview] = await pool.execute(
-      'SELECT * FROM reviews WHERE id = ?',
-      [result.insertId]
-    );
-
-    res.status(201).json(newReview[0]);
+    res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error('createReview error:', error.message);
     res.status(500).json({ message: 'Server error creating review' });
@@ -134,16 +129,16 @@ const updateReview = async (req, res) => {
   const { rating, comment } = req.body;
 
   try {
-    const [reviews] = await pool.execute(
-      'SELECT * FROM reviews WHERE id = ?',
+    const existing = await pool.query(
+      'SELECT * FROM reviews WHERE id = $1',
       [req.params.id]
     );
 
-    if (reviews.length === 0) {
+    if (existing.rows.length === 0) {
       return res.status(404).json({ message: 'Review not found' });
     }
 
-    const review = reviews[0];
+    const review = existing.rows[0];
 
     // Only the review author can update
     if (review.user_id !== req.user.id) {
@@ -152,8 +147,8 @@ const updateReview = async (req, res) => {
 
     const newRating = rating ? parseInt(rating) : review.rating;
 
-    await pool.execute(
-      'UPDATE reviews SET rating = ?, comment = ? WHERE id = ?',
+    const result = await pool.query(
+      'UPDATE reviews SET rating = $1, comment = $2 WHERE id = $3 RETURNING *',
       [
         newRating,
         comment !== undefined ? comment : review.comment,
@@ -161,12 +156,7 @@ const updateReview = async (req, res) => {
       ]
     );
 
-    const [updated] = await pool.execute(
-      'SELECT * FROM reviews WHERE id = ?',
-      [req.params.id]
-    );
-
-    res.status(200).json(updated[0]);
+    res.status(200).json(result.rows[0]);
   } catch (error) {
     console.error('updateReview error:', error.message);
     res.status(500).json({ message: 'Server error updating review' });
@@ -180,23 +170,23 @@ const updateReview = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 const deleteReview = async (req, res) => {
   try {
-    const [reviews] = await pool.execute(
-      'SELECT * FROM reviews WHERE id = ?',
+    const existing = await pool.query(
+      'SELECT * FROM reviews WHERE id = $1',
       [req.params.id]
     );
 
-    if (reviews.length === 0) {
+    if (existing.rows.length === 0) {
       return res.status(404).json({ message: 'Review not found' });
     }
 
-    const review = reviews[0];
+    const review = existing.rows[0];
 
     // Only the review author can delete
     if (review.user_id !== req.user.id) {
       return res.status(403).json({ message: 'Not authorized to delete this review' });
     }
 
-    await pool.execute('DELETE FROM reviews WHERE id = ?', [req.params.id]);
+    await pool.query('DELETE FROM reviews WHERE id = $1', [req.params.id]);
 
     res.status(200).json({ message: 'Review deleted successfully' });
   } catch (error) {
