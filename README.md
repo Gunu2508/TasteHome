@@ -1,11 +1,17 @@
 # TasteHome API
 
-A RESTful backend API for TasteHome — a recipe sharing platform. Built with **Node.js**, **Express**, and **MySQL** (hosted on Aiven).
+A RESTful backend API for TasteHome — a recipe sharing platform. Built with **Node.js**, **Express**, and **PostgreSQL** (hosted on Render).
+
+## Live URL
+
+**https://tastehome-api.onrender.com**
+
+---
 
 ## Technologies
 
 - Node.js + Express 4
-- MySQL 8 via `mysql2` (cloud-hosted on Aiven)
+- PostgreSQL via `pg` (cloud-hosted on Render)
 - JWT authentication (`jsonwebtoken`)
 - Password hashing (`bcrypt`)
 - Environment configuration (`dotenv`)
@@ -17,7 +23,7 @@ A RESTful backend API for TasteHome — a recipe sharing platform. Built with **
 ```
 backend/
 ├── config/
-│   ├── db.js              # MySQL connection pool
+│   ├── db.js              # PostgreSQL connection pool
 │   └── initDB.js          # Auto-creates tables on startup
 ├── controllers/
 │   ├── authController.js  # register & login logic
@@ -47,8 +53,8 @@ backend/
 | Entity | Table | Relationship |
 |--------|-------|-------------|
 | Users | `users` | Base entity |
-| Recipes (Resource A) | `recipes` | `user_id` FK to `users.id` (One-to-Many) |
-| Reviews (Resource B) | `reviews` | `recipe_id` FK to `recipes.id`, `user_id` FK to `users.id` |
+| Recipes (Resource A) | `recipes` | `user_id` FK → `users.id` (One-to-Many) |
+| Reviews (Resource B) | `reviews` | `recipe_id` FK → `recipes.id`, `user_id` FK → `users.id` |
 
 ---
 
@@ -60,7 +66,7 @@ backend/
 | POST | `/api/auth/register` | 201 |
 | POST | `/api/auth/login` | 200 |
 
-### Users (Private - Bearer token required)
+### Users (Private — Bearer token required)
 | Method | Route | Status |
 |--------|-------|--------|
 | GET | `/api/users` | 200 |
@@ -105,7 +111,7 @@ backend/
 3. Create `.env` from template:
    ```bash
    cp .env.example .env
-   # Fill in your Aiven DB credentials and JWT secret
+   # Fill in your DATABASE_URL and JWT_SECRET
    ```
 
 4. Start the server:
@@ -117,8 +123,8 @@ backend/
 
 ## Deployment
 
-- **API:** Hosted on [Render](https://render.com)
-- **Database:** MySQL hosted on [Aiven](https://aiven.io)
+- **API:** Hosted on [Render](https://render.com) — https://tastehome-api.onrender.com
+- **Database:** PostgreSQL hosted on [Render](https://render.com)
 
 ---
 
